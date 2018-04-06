@@ -28,6 +28,7 @@ def get_ajaxed_html():
         print("waiting {} secs".format(wait_len))
         time.sleep(wait_len)
 
+
     try:
         driver.get(url)
         items_per_page = 100
