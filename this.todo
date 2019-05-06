@@ -1,1 +1,7 @@
-☐ refactor downloader.py
+todos:
+    ☐ refactor downloader.py
+    ☐ gebruik nieuw pytube ding ipv selenium onzin
+    sqlite database bevat:
+        ☐ playlist urls met het path waar ze horen te zitten.
+        ☐ per video url, bestandsnaam, playlist en de download status (niet/gefaalt/gelukt).
+        ☐ een lijst van pogingen om de playlists te updaten en het resultaat ervan.
