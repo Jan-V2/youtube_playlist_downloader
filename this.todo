@@ -2,6 +2,9 @@ todos:
     ☐ refactor downloader.py
     ☐ gebruik nieuw pytube ding ipv selenium onzin
     sqlite database bevat:
-        ☐ playlist urls met het path waar ze horen te zitten.
-        ☐ per video url, bestandsnaam, playlist en de download status (niet/gefaalt/gelukt).
+        ✔ playlist urls met het path waar ze horen te zitten. @done(2019-05-07 01:25) @project(todos / sqlite database bevat)
+        ✔ per video url, bestandsnaam, playlist en de download status (niet/gefaalt/gelukt). @done(2019-05-07 01:25) @project(todos / sqlite database bevat)
         ☐ een lijst van pogingen om de playlists te updaten en het resultaat ervan.
+        subtaken:
+            ✔ tables aanmaken  @done(2019-05-06 19:40) @project(todos / sqlite database bevat / subtaken)
+            ☐ data api maken

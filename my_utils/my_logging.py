@@ -29,7 +29,7 @@ def log(logline, log_type):
 
 def write_to_logfile(line):
     print(line)
-    with open(ROOTDIR + dir_sep + logfile_name + ".log.txt",mode='a') as logfile:
+    with open(ROOTDIR + dir_sep + logfile_name + ".log",mode='a') as logfile:
         logfile.write(line + '\n')
 
 def get_timestamp():

@@ -1,5 +1,8 @@
 import inspect
 import os
+import datetime
+import re
+
 
 def raise_custom_except(except_, message):
     try:
@@ -47,9 +50,11 @@ def get_subdir_list(dir):
 
 def get_methods_from_class(class_arg):
     return inspect.getmembers(class_arg, predicate=inspect.ismethod)
-		
+
+
 def get_functions_from_class(class_arg):
     return inspect.getmembers(class_arg, predicate=inspect.isfunction)
+
 
 def timestamp_to_datatime(timestamp_str):
     timestamp_str = timestamp_str.replace("]", '')
@@ -75,7 +80,29 @@ def escape_string(string):
     return escaped
 
 
+def safe_filename(s, max_length=255):
+    """Sanitize a string making it safe to use as a filename.
 
+    This function was based off the limitations outlined here:
+    https://en.wikipedia.org/wiki/Filename.
 
-if __name__ == '__main__':
-    pass
+    :param str s:
+        A string to make safe for use as a file name.
+    :param int max_length:
+        The maximum filename character length.
+    :rtype: str
+    :returns:
+        A sanitized string.
+
+        stolen from pytube
+    """
+    # Characters in range 0-31 (0x00-0x1F) are not allowed in ntfs filenames.
+    ntfs_chrs = [chr(i) for i in range(0, 31)]
+    chrs = [
+        '\"', '\#', '\$', '\%', '\'', '\*', '\,', '\.', '\/', '\:', '"',
+        '\;', '\<', '\>', '\?', '\\', '\^', '\|', '\~', '\\\\',
+    ]
+    pattern = '|'.join(ntfs_chrs + chrs)
+    regex = re.compile(pattern, re.UNICODE)
+    filename = regex.sub('', s)
+    return filename[:max_length].rsplit(' ', 0)[0]
