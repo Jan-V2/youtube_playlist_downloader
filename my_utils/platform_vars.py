@@ -1,4 +1,5 @@
 import os
+from builtins import OSError, str
 from pathlib import Path
 
 

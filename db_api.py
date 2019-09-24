@@ -5,20 +5,21 @@ from pytube.__main__ import YouTube
 from pytube.contrib.playlist import Playlist
 from pytube import exceptions as pytube_excepts
 from my_utils.my_logging import log_error, log_message as log
+from enum import Enum
+from collections import namedtuple
 
 conn = sqlite3.connect('playlists.db')
 cur = conn.cursor()
 
-class VIDEO_STATUSES:
-    def __init__(self):
-        self.failed = "failed"
-        self.failed = "error"
-        self.queued = "in queue"
-        self.finished = "finished"
-        self.ignored = "ignored"
-        self.unavailable = "unavailable"# can mean it's age restricted
+class STATUSES(Enum):
+    failed = "failed"
+    error = "error"
+    queued = "in queue"
+    downloaded = "finished"
+    ignored = "ignored"
+    unavailable = "unavailable"  # could mean it's age restricted
 
-STATUSES = VIDEO_STATUSES()
+
 
 def init_db():
     cur.execute("CREATE TABLE IF NOT EXISTS Playlists(id integer primary key autoincrement NOT NULL,"
@@ -26,12 +27,12 @@ def init_db():
 
     cur.execute("CREATE TABLE IF NOT EXISTS Videos(id integer primary key autoincrement NOT NULL,"
                 "file_name TEXT NOT NULL, url TEXT NOT NULL, playlist_id INTEGER NOT NULL, status TEXT NOT NULL, title TEXT,"
-                "length_in_secs INTEGER, description TEXT, download_time DATETIME, stacktrace TEXT,"
+                "length_in_secs INTEGER, description TEXT, time_downloaded DATETIME, stacktrace TEXT, md5_hash TEXT,"
                 "    FOREIGN KEY (playlist_id) REFERENCES Playlists(id))")
 
     cur.execute("CREATE TABLE IF NOT EXISTS Sync_Attempts(id integer primary key autoincrement NOT NULL, "
-                "playlist_id INTEGER NOT NULL, time DATETIME NOT NULL, success BOOLEAN NOT NULL, stacktrace TEXT, "
-                "    FOREIGN KEY (playlist_id) REFERENCES Playlists(id))")
+                "playlist_id INTEGER NOT NULL, time DATETIME NOT NULL, success BOOLEAN NOT NULL, stacktrace TEXT,"
+                "    FOREIGN KEY(playlist_id) REFERENCES Playlists(id))")
 
 
 def insert_playlist(url, path, name, info=""):
@@ -59,12 +60,12 @@ def insert_video_list(video_urls, playlist_url):
                 length = yt.length
                 file_name = safe_filename(title)
                 cur.execute("INSERT INTO Videos(file_name, url, playlist_id, status, title, description, length_in_secs) VALUES(?, ?, ?, ?, ?, ?, ?)",
-                            (file_name, url, playlist_id, STATUSES.queued, title, description, length))
+                            (file_name, url, playlist_id, str(STATUSES.queued), title, description, length))
             except Exception as e:
                 if e.__class__ is pytube_excepts.VideoUnavailable:
                     log("video at " + url + " is unavailable")
                     cur.execute("INSERT INTO Videos(file_name, url, playlist_id, status) VALUES(?, ?, ?, ?)",
-                                ("Na", url, playlist_id, STATUSES.unavailable))
+                                ("Na", url, playlist_id, str(STATUSES.unavailable)))
                 else:
                     log("failed to insert video into video table")
                     log("url: " + url)
@@ -76,20 +77,30 @@ def insert_video_list(video_urls, playlist_url):
 def get_queued_urls():
     return __get_video_with_status(STATUSES.queued)
 
+
 def get_failed_urls():
     return __get_video_with_status(STATUSES.failed)
 
+
 def __get_video_with_status(status):
-    cur.execute("SELECT url FROM Videos WHERE status = ?", status)
-    return cur.fetchall()
+    cur.execute("SELECT url FROM Videos WHERE status = ?", [str(status)])
+    return __list_of_collom(cur.fetchall())
 
-if __name__ == '__main__':
-    init_db()
-    pl_urls = ["https://www.youtube.com/playlist?list=PLJ_TJFLc25JQaIKha3sduCHUXkFcNMMDS","https://www.youtube.com/playlist?list=UUu6mSoMNzHQiBIOCkHUa2Aw"]
-    insert_playlist(pl_urls[0], "/home/john/test", "RLM trailers")
-    insert_playlist(pl_urls[1], "/home/john/test2", "cody's lab channel playlist")
 
-    for pl_url in pl_urls:
-        pl = Playlist(pl_url)
-        pl.populate_video_urls()
-        insert_video_list(pl.video_urls, pl_url)
+def get_video_with_status_in_pl(status, pl_id):
+    cur.execute("SELECT url FROM Videos WHERE status = ? AND  playlist_id = ?", [str(status), pl_id])
+    return __list_of_collom(cur.fetchall())
+
+
+def __list_of_collom(_list, idx=0):
+    return list(map(lambda item: item[idx], _list))
+
+
+def write_video_download_result(url, status, stacktrace=None):
+    status = str(status)
+    if stacktrace is None:
+        cur.execute("UPDATE Videos SET status=?,time_downloaded=CURRENT_TIMESTAMP WHERE url=?", [status, url])
+    else:
+        cur.execute("UPDATE Videos SET status=?,time_downloaded=CURRENT_TIMESTAMP,stacktrace=? WHERE url=?", [status, url,  stacktrace])
+
+
