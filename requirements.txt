@@ -1,0 +1,2 @@
+pytube3==9.6.4
+typing-extensions==3.7.4.1
