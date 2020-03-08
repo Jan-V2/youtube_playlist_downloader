@@ -68,7 +68,7 @@ def insert_video_list(video_urls, playlist_url, number_videos=False, reverse_num
             start, stop, step = (len(_video_urls), 0, -1)
         else:
             start, stop, step = (1, len(_video_urls) + 1, 1)
-        return (str(i).zfill(digits) for i in range(start, stop, step))
+        return (str(i).zfill(digits) for i in range(start, stop, step) )
 
     cur.execute("SELECT id FROM Playlists WHERE url = ?", [playlist_url])
     prefix_gen = _path_num_prefix_generator(video_urls, reverse=reverse_numbering)
@@ -95,7 +95,7 @@ def insert_video_list(video_urls, playlist_url, number_videos=False, reverse_num
                 length = yt.length
                 file_name = safe_filename(title)
                 if number_videos:
-                    file_name = vid_num + file_name
+                    file_name = vid_num + " " + file_name
                 cur.execute("INSERT INTO Videos(file_name, url, playlist_id, status, title, description, length_in_secs) VALUES(?, ?, ?, ?, ?, ?, ?)",
                             (file_name, url, playlist_id, str(STATUSES.queued), title, description, length))
             except Exception as e:
@@ -143,13 +143,17 @@ def download_playlist(playlist_id):
         resolutions = ['720p', '480p', '360p']  # it checks for resolutions according the order of the list
         downloaded = False
         for res in resolutions:
-            if YouTube(url).streams.filter(res=res, progressive=True, mime_type="video/mp4").first() is not None:
-                log('starting download at ' + res)
-                YouTube(url).streams.filter(res=res, progressive=True, mime_type="video/mp4").first().download(
-                    output_path=path, filename=safe_filename(file_name))
-                __update_video_status(url, STATUSES.downloaded)
-                downloaded = True
-                break
+            try:
+                if YouTube(url).streams.filter(res=res, progressive=True, mime_type="video/mp4").first() is not None:
+                    log('starting download at ' + res)
+                    YouTube(url).streams.filter(res=res, progressive=True, mime_type="video/mp4").first().download(
+                        output_path=path, filename=safe_filename(file_name))
+                    __update_video_status(url, STATUSES.downloaded)
+                    downloaded = True
+                    break
+            except Exception as e:
+                log_error('error downloading video @ ' + url)
+                __update_video_status(url, STATUSES.error, stacktrace=traceback.format_exc())
         if not downloaded:
             log('cannot download video @ ' + url)
 
@@ -189,6 +193,8 @@ def __update_video_status(url, status, stacktrace=None, md5=None):
     # todo other statuses
     if status is STATUSES.downloaded:
         cur.execute("UPDATE Videos SET status = ?, time_downloaded = ? where url == ?", [str(status), datetime.datetime.now(), url])
+    elif status is STATUSES.error:
+        cur.execute("UPDATE Videos SET status = ?, time_downloaded = ?, stacktrace = ? where url == ?", [str(status), datetime.datetime.now(), stacktrace, url])
     conn.commit()
     log("updated db")
 
