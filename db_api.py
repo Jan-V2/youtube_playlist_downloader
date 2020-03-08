@@ -1,3 +1,4 @@
+import hashlib
 import sqlite3
 import traceback
 from my_utils.util_funcs import safe_filename
@@ -35,6 +36,7 @@ def init_db():
     cur.execute("CREATE TABLE IF NOT EXISTS Sync_Attempts(id integer primary key autoincrement NOT NULL, "
                 "playlist_id INTEGER NOT NULL, time DATETIME NOT NULL, success BOOLEAN NOT NULL, stacktrace TEXT, "
                 "    FOREIGN KEY (playlist_id) REFERENCES Playlists(id))")
+    conn.commit()
 
 
 def insert_playlist(url, path, name, info=""):
@@ -68,12 +70,12 @@ def insert_video_list(video_urls, playlist_url):
                 length = yt.length
                 file_name = safe_filename(title)
                 cur.execute("INSERT INTO Videos(file_name, url, playlist_id, status, title, description, length_in_secs) VALUES(?, ?, ?, ?, ?, ?, ?)",
-                            (file_name, url, playlist_id, STATUSES.queued, title, description, length))
+                            (file_name, url, playlist_id, str(STATUSES.queued), title, description, length))
             except Exception as e:
                 if e.__class__ is pytube_excepts.VideoUnavailable:
                     log("video at " + url + " is unavailable")
                     cur.execute("INSERT INTO Videos(file_name, url, playlist_id, status) VALUES(?, ?, ?, ?)",
-                                ("Na", url, playlist_id, STATUSES.unavailable))
+                                ("Na", url, playlist_id, str(STATUSES.unavailable)))
                 else:
                     log("failed to insert video into video table")
                     log("url: " + url)
@@ -94,6 +96,7 @@ def __get_video_with_status(status):
 
 def __list_of_collom(_list, idx=0):
     return list(map(lambda item: item[idx], _list))
+
 def download_plalist(playlist_id):
     try:
         cur.execute("SELECT path FROM Playlists WHERE id = ?", [playlist_id])
@@ -112,7 +115,7 @@ def download_plalist(playlist_id):
         raise e
 
     for url in urls:
-
+        pass
 
 def md5_from_file(file_path):
     hash_md5 = hashlib.md5()

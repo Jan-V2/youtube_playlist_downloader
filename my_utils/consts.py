@@ -1,4 +1,4 @@
-.
+
 
 
 def _get_letters_str():
